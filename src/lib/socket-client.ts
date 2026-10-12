@@ -18,6 +18,19 @@ const SOCKET_URL =
 /** Browser-side Socket.io singleton (connects to the custom server). */
 export function getSocket(): Socket {
   if (!socket) {
+    if (
+      typeof window !== "undefined" &&
+      !SOCKET_URL &&
+      process.env.NODE_ENV === "production"
+    ) {
+      // Same-origin fallback only works with single-port `--serve-next`.
+      // On split deploys (e.g. Vercel + Render) this 404s — set
+      // NEXT_PUBLIC_SOCKET_URL and redeploy.
+      console.warn(
+        "[socket] NEXT_PUBLIC_SOCKET_URL is not set — falling back to same-origin. " +
+          "Set it to your Socket.io backend URL and redeploy."
+      );
+    }
     const opts = {
       path: "/socket.io",
       autoConnect: true,
