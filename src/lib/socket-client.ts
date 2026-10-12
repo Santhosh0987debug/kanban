@@ -7,13 +7,23 @@ import type { PresenceUser } from "@/lib/types";
 let socket: Socket | null = null;
 
 /**
- * Standalone socket server URL (e.g. Render deployment).
- * When unset, connects same-origin (single-port `node socket-server.mjs --serve-next`).
+ * Socket.io backend URL.
+ * - Explicit `NEXT_PUBLIC_SOCKET_URL` always wins (Vercel env, split deploys).
+ * - Production builds without the variable default to the Render backend so
+ *   the browser never polls the frontend origin (same-origin 404).
+ * - Local dev keeps same-origin (single-port `--serve-next` / `next dev`).
  */
+const PRODUCTION_SOCKET_URL = "https://kanban-p52i.onrender.com";
+
 const SOCKET_URL =
-  typeof process !== "undefined"
-    ? process.env.NEXT_PUBLIC_SOCKET_URL
-    : undefined;
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SOCKET_URL) ||
+  undefined;
+
+const EFFECTIVE_URL =
+  SOCKET_URL ||
+  (typeof process !== "undefined" && process.env.NODE_ENV === "production"
+    ? PRODUCTION_SOCKET_URL
+    : undefined);
 
 /** Browser-side Socket.io singleton (connects to the custom server). */
 export function getSocket(): Socket {
@@ -23,12 +33,11 @@ export function getSocket(): Socket {
       !SOCKET_URL &&
       process.env.NODE_ENV === "production"
     ) {
-      // Same-origin fallback only works with single-port `--serve-next`.
-      // On split deploys (e.g. Vercel + Render) this 404s — set
-      // NEXT_PUBLIC_SOCKET_URL and redeploy.
+      // Same-origin fallback 404s on split deploys (Vercel + Render),
+      // so production falls back to the Render backend instead.
       console.warn(
-        "[socket] NEXT_PUBLIC_SOCKET_URL is not set — falling back to same-origin. " +
-          "Set it to your Socket.io backend URL and redeploy."
+        "[socket] NEXT_PUBLIC_SOCKET_URL is not set — connecting to the " +
+          `production backend at ${PRODUCTION_SOCKET_URL}. Set the env var to override.`
       );
     }
     const opts = {
@@ -36,7 +45,7 @@ export function getSocket(): Socket {
       autoConnect: true,
       reconnection: true,
     };
-    socket = SOCKET_URL ? io(SOCKET_URL, opts) : io(opts);
+    socket = EFFECTIVE_URL ? io(EFFECTIVE_URL, opts) : io(opts);
   }
   return socket;
 }
