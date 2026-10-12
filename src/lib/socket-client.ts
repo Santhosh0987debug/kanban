@@ -6,14 +6,24 @@ import type { PresenceUser } from "@/lib/types";
 
 let socket: Socket | null = null;
 
+/**
+ * Standalone socket server URL (e.g. Render deployment).
+ * When unset, connects same-origin (single-port `node socket-server.mjs --serve-next`).
+ */
+const SOCKET_URL =
+  typeof process !== "undefined"
+    ? process.env.NEXT_PUBLIC_SOCKET_URL
+    : undefined;
+
 /** Browser-side Socket.io singleton (connects to the custom server). */
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io({
+    const opts = {
       path: "/socket.io",
       autoConnect: true,
       reconnection: true,
-    });
+    };
+    socket = SOCKET_URL ? io(SOCKET_URL, opts) : io(opts);
   }
   return socket;
 }

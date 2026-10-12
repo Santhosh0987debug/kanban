@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:ws": "node socket-server.mjs",
+    "dev:ws": "node socket-server.mjs --serve-next",
+    "socket": "node socket-server.mjs",
     "build": "next build",
     "start": "next start",
-    "start:ws": "node socket-server.mjs",
+    "start:ws": "node socket-server.mjs --serve-next",
     "lint": "eslint"
   },
   "dependencies": {
